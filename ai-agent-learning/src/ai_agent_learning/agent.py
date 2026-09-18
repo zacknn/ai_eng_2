@@ -4,7 +4,7 @@ load_dotenv()
 import json
 import inspect
 from typing import Callable, get_type_hints
-from .tools import get_current_time, calculate, search_wikipedia
+from .tools import get_current_time, calculate, search_wikipedia , get_weather
 from openai import OpenAI
 import os
 
@@ -17,6 +17,7 @@ TOOL_REGISTRY: dict[str, Callable] = {
     "get_current_time": get_current_time,
     "calculate": calculate,
     "search_wikipedia": search_wikipedia,
+    "get_weather": get_weather,
 }
 
 # =============================================================================
@@ -187,4 +188,4 @@ if __name__ == "__main__":
             break
         
         answer = run_agent(user_input)
-        print(f"\n🤖 Agent: {answer}\n")
+        print(f"\n Agent: {answer}\n")

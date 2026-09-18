@@ -7,6 +7,7 @@ name = "ai-agent-learning"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "beautifulsoup4" },
     { name = "dotenv" },
     { name = "openai" },
     { name = "requests" },
@@ -15,6 +16,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "beautifulsoup4", specifier = ">=4.15.0" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "openai", specifier = ">=3.14.1" },
     { name = "requests", specifier = ">=2.34.2" },

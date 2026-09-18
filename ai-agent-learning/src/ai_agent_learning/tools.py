@@ -2,6 +2,8 @@ from zoneinfo import ZoneInfo
 from datetime import datetime
 import re
 import wikipedia
+from bs4 import BeautifulSoup
+import requests
 
 def get_current_time(timezone: str = "UTC") -> str:
     """
@@ -63,3 +65,30 @@ def search_wikipedia(query: str) -> str:
         return f"Error: No Wikipedia page found for '{query}'."
     except Exception as e:
         return f"Error: {str(e)}"
+    
+    
+def get_weather(city: str) -> str:
+    """
+    Get the current weather for a city.
+    Use this when the user asks about weather, temperature, rain, or conditions.
+    
+    Args:
+        city: City name, e.g. "Tokyo", "Paris", "New York"
+    """
+    # Mock data for learning purposes
+    weather_db = {
+        "tokyo": "24°C, Clear sky, Wind: 12 km/h NE, Humidity: 65%",
+        "paris": "18°C, Partly cloudy, Wind: 8 km/h SW, Humidity: 72%",
+        "new york": "22°C, Sunny, Wind: 15 km/h NW, Humidity: 55%",
+        "london": "16°C, Light rain, Wind: 10 km/h E, Humidity: 80%",
+    }
+    
+    key = city.lower().replace(", japan", "").replace(", france", "").replace(", uk", "").strip()
+    result = weather_db.get(key)
+    
+    if result:
+        return f"Weather in {city}: {result}"
+    else:
+        # Return a clear error so the LLM knows the tool failed, not the user
+        return f"Error: Weather data not available for '{city}'. Available cities: Tokyo, Paris, New York, London."
+    

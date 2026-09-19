@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 load_dotenv()
-
+from .spinner import Spinner
 import json
 import inspect
 from typing import Callable, get_type_hints
@@ -120,15 +120,21 @@ def run_agent(user_message: str, max_steps: int = 5) -> str:
     ]
     
     for step in range(max_steps):
-        print(f"\n--- Step {step + 1} ---")
+        spinner = Spinner(f"Step {step + 1}")
+        spinner.start()
         
-        # STEP 1: Call the LLM WITH the tools
-        response = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
-            messages=messages,
-            tools=TOOLS_SCHEMA,        # <-- YOU WERE MISSING THIS
-            tool_choice="auto",        # Let the LLM decide
-        )
+        try:
+            # STEP 1: Call the LLM WITH the tools
+            response = client.chat.completions.create(
+                model="openai/gpt-oss-120b",
+                messages=messages,
+                tools=TOOLS_SCHEMA,        
+                tool_choice="auto",        # Let the LLM decide
+            )
+        except Exception as e:
+            return f"Error calling the model: {e}"
+        finally:
+            spinner.stop()
         
         assistant_message = response.choices[0].message
         
@@ -182,10 +188,13 @@ if __name__ == "__main__":
     print('  "Who invented the lightbulb?"')
     print()
     
-    while True:
-        user_input = input("You: ").strip()
-        if user_input.lower() in ("exit", "quit"):
-            break
-        
-        answer = run_agent(user_input)
-        print(f"\n Agent: {answer}\n")
+    try:
+        while True:
+            user_input = input("You: ").strip()
+            if user_input.lower() in ("exit", "quit"):
+                break
+
+            answer = run_agent(user_input)
+            print(f"\n Agent: {answer}\n")
+    except KeyboardInterrupt:
+        print("\nGoodbye!")

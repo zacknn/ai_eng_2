@@ -7,6 +7,7 @@ from typing import Callable, get_type_hints
 from .tools import get_current_time, calculate, search_wikipedia , get_weather
 from openai import OpenAI
 import os
+from .memory import *
 
 
 # =============================================================================
@@ -105,19 +106,23 @@ def run_agent(user_message: str, max_steps: int = 5) -> str:
       4. If NO: return the answer
     """
     
+    past_messages = load_memory()
+    
     messages = [
         {
             "role": "system",
             "content": (
                 "You are a helpful assistant with access to tools. "
+                "You remember past conversations with the user. "
                 "When a user's question requires real-time data, calculations, or "
                 "external knowledge, you MUST use the appropriate tool. "
-                "Do not guess. Do not use prior knowledge when a tool is available. "
-                "After using tools, provide a clear, concise answer."
+                "Do not guess. Do not use prior knowledge when a tool is available."
             )
-        },
-        {"role": "user", "content": user_message}
+        }
     ]
+    messages.extend(past_messages[-20:])
+    
+    messages.append({"role": "user", "content": user_message})
     
     for step in range(max_steps):
         spinner = Spinner(f"Step {step + 1}")

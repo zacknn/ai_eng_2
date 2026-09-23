@@ -129,12 +129,11 @@ def run_agent(user_message: str, max_steps: int = 5) -> str:
         spinner.start()
         
         try:
-            # STEP 1: Call the LLM WITH the tools
             response = client.chat.completions.create(
                 model="openai/gpt-oss-120b",
                 messages=messages,
                 tools=TOOLS_SCHEMA,        
-                tool_choice="auto",        # Let the LLM decide
+                tool_choice="auto",
             )
         except Exception as e:
             return f"Error calling the model: {e}"
@@ -143,9 +142,13 @@ def run_agent(user_message: str, max_steps: int = 5) -> str:
         
         assistant_message = response.choices[0].message
         
-        # STEP 2: Check if LLM wants a tool
-        # If no tool_calls, the LLM is done answering
+        # No tool calls → we have the final answer. Save and return.
         if not assistant_message.tool_calls:
+            messages.append({
+                "role": "assistant",
+                "content": assistant_message.content
+            })
+            save_memory(messages)   # <-- save the full conversation
             return assistant_message.content
         
         # STEP 3: LLM wants tools. Add its request to history first.
@@ -154,15 +157,32 @@ def run_agent(user_message: str, max_steps: int = 5) -> str:
         # Execute each requested tool
         for tool_call in assistant_message.tool_calls:
             tool_name = tool_call.function.name
-            tool_args = json.loads(tool_call.function.arguments)
             
-            print(f" Tool called: {tool_name}({tool_args})")
+            # Safely parse arguments
+            try:
+                tool_args = json.loads(tool_call.function.arguments)
+                if not isinstance(tool_args, dict):
+                    raise ValueError("Arguments must be a JSON object")
+            except (json.JSONDecodeError, ValueError) as e:
+                tool_args = {}
+                result = f"Error: Invalid arguments for {tool_name}: {e}"
+                print(f"* {result}")
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": result
+                })
+                continue   # skip to the next tool_call
             
-            # Look up and run the function
+            print(f"🔧 Tool called: {tool_name}({tool_args})")
+            
             if tool_name in TOOL_REGISTRY:
                 func = TOOL_REGISTRY[tool_name]
                 try:
                     result = func(**tool_args)
+                except TypeError as e:
+                    # Wrong argument names/count
+                    result = f"Error: Bad arguments for {tool_name}: {str(e)}"
                 except Exception as e:
                     result = f"Error executing {tool_name}: {str(e)}"
             else:

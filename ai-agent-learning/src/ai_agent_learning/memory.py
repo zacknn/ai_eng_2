@@ -11,18 +11,23 @@ def load_memory() -> list[dict]:
     return []
 
 def save_memory(messages: list[dict]) -> None:
-    """Save conversation messages to disk."""
-    # Filter out tool_call details to keep file small
+    """Save conversation messages to disk, skipping tool plumbing."""
     clean_messages = []
     for msg in messages:
-        clean_msg = {
-            "role": msg.get("role"),
+        if not isinstance(msg, dict) and hasattr(msg, "model_dump"):
+            msg = msg.model_dump()
+
+        role = msg.get("role")
+        # Skip system prompt, tool calls, and tool results
+        if role in ("system", "tool"):
+            continue
+        # Skip assistant messages that are just tool-call requests
+        if role == "assistant" and not msg.get("content"):
+            continue
+        clean_messages.append({
+            "role": role,
             "content": msg.get("content"),
-        }
-        # Keep tool_call_id for tool messages so context makes sense
-        if "tool_call_id" in msg:
-            clean_msg["tool_call_id"] = msg["tool_call_id"]
-        clean_messages.append(clean_msg)
+        })
     
     with open(MEMORY_FILE, "w") as f:
         json.dump(clean_messages, f, indent=2)

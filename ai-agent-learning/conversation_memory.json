@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "what 2 + 4"
+  },
+  {
+    "role": "assistant",
+    "content": "2\u202f+\u202f4\u202f=\u202f6."
+  },
+  {
+    "role": "user",
+    "content": "what did i just ask you ?"
+  },
+  {
+    "role": "assistant",
+    "content": "You asked for the result of the arithmetic expression \u201c2\u202f+\u202f4\u201d."
+  }
+]

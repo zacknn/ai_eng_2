@@ -55,12 +55,11 @@ def search_wikipedia(query: str) -> str:
 
         return f"{page.title}: {page.summary[:600]}"
     except wikipedia.exceptions.DisambiguationError as e:
-        
         try:
             page = wikipedia.page(e.options[0])
             return f"{page.title}: {page.summary[:600]}"
-        except:
-            return f"Error: '{query}' is ambiguous. Be more specific."
+        except Exception:
+            return f"Error: '{query}' is ambiguous. Be more specific. Try one of: {', '.join(e.options[:3])}"
     except wikipedia.exceptions.PageError:
         return f"Error: No Wikipedia page found for '{query}'."
     except Exception as e:

@@ -8,7 +8,8 @@ authors = [
 ]
 requires-python = ">=3.14"
 dependencies = [
-    "smolagents>=1.26.0",
+    "dotenv>=0.9.9",
+    "smolagents[openai]>=1.26.0",
 ]
 
 [project.scripts]

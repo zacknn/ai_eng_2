@@ -1,2 +1,3 @@
-def main() -> None:
-    print("Hello from research-agent!")
+from .agents import main
+
+__all__ = ["main"]

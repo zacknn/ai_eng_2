@@ -3,6 +3,7 @@ from ddgs import DDGS
 import httpx
 import trafilatura
 from urllib.parse import urlparse
+import time 
 
 
 def _domain(url: str) -> str:
@@ -14,7 +15,7 @@ def _domain(url: str) -> str:
 
 
 @tool
-def get_search_results_as_string(query: str, num_results: int = 5) -> str:
+def get_search_results_as_string(query: str, num_results: int = 2) -> str:
     """
     Search the web and return a formatted list of results (title, URL, domain,
     snippet). Use this to discover relevant pages; then use fetch_page to read
@@ -31,6 +32,13 @@ def get_search_results_as_string(query: str, num_results: int = 5) -> str:
         with DDGS() as ddgs:
             results = list(ddgs.text(query, max_results=num_results))
     except Exception as e:
+        msg = str(e)
+        if "No results" in msg or "rate" in msg.lower() or "429" in msg:
+            return (
+                f"ERROR: Search failed for '{query}'. "
+                "This may be a rate limit or a query with no results. "
+                "Try a SHORTER, SIMPLER query, or move on to the next sub-question."
+            )
         return f"ERROR: Search failed for '{query}': {type(e).__name__}: {e}"
 
     if not results:
@@ -52,9 +60,11 @@ def get_search_results_as_string(query: str, num_results: int = 5) -> str:
 
     return "\n".join(lines).strip()
 
+time.sleep(2)
+
 
 @tool
-def fetch_page(url: str, max_chars: int = 8000) -> str:
+def fetch_page(url: str, max_chars: int = 2000) -> str:
     """
     Download a web page and return its main readable text, stripped of HTML,
     navigation, ads, and scripts.
@@ -64,29 +74,32 @@ def fetch_page(url: str, max_chars: int = 8000) -> str:
 
     Args:
         url: The full URL to fetch (must start with http:// or https://).
-        max_chars: Maximum number of characters to return. Default 8000.
+        max_chars: Maximum number of characters to return. Default 2000.
             Text beyond this is truncated to protect the context window.
     """
-    # 1. Basic sanity check — the LLM sometimes passes bare domains.
     if not url.startswith(("http://", "https://")):
         return f"ERROR: '{url}' is not a valid URL. It must start with http:// or https://"
 
-    # 2. Download the page.
     try:
-        headers = {
-            # Many sites block the default httpx user-agent. Pretend to be a browser.
-            "User-Agent": (
-                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/122.0 Safari/537.36"
-            )
-        }
+        max_chars = max(1, int(max_chars))
+    except (TypeError, ValueError):
+        return f"ERROR: max_chars must be a positive integer for {url}"
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/122.0 Safari/537.36"
+        )
+    }
+
+    try:
         response = httpx.get(
             url,
             headers=headers,
-            timeout=15.0,          # don't hang forever
-            follow_redirects=True, # many URLs redirect (http->https, /old->/new)
+            timeout=15.0,
+            follow_redirects=True,
         )
-        response.raise_for_status()  # raise on 4xx/5xx
+        response.raise_for_status()
     except httpx.TimeoutException:
         return f"ERROR: Timed out while fetching {url}"
     except httpx.HTTPStatusError as e:
@@ -96,24 +109,19 @@ def fetch_page(url: str, max_chars: int = 8000) -> str:
 
     html = response.text
 
-    # 3. Extract the main article text. trafilatura returns None if it can't
-    #    find anything article-like (e.g. a login page or a 404 page).
     extracted = trafilatura.extract(
         html,
-        include_comments=False,   # drop user comments
-        include_tables=True,      # keep tables — often useful for facts
-        favor_precision=True,     # be conservative; drop junk rather than include it
+        include_comments=False,
+        include_tables=True,
+        favor_precision=True,
     )
 
     if not extracted:
         return f"ERROR: Could not extract readable text from {url}"
 
-    # 4. Truncate to the character budget.
     if len(extracted) > max_chars:
-        extracted = extracted[:max_chars] + "\n\n[...truncated...]"
+        extracted = extracted[:max_chars].rstrip() + "\n\n[...truncated...]"
 
-    # 5. Prefix with the URL so the LLM always sees the source of this text.
-    #    This is what lets it cite correctly later.
     return f"SOURCE: {url}\n\n{extracted}"
 
 

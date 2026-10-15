@@ -11,44 +11,39 @@ load_dotenv()
 
 TASK = """
 Research the history of Python (the programming language) and write a
-cited summary.
+short cited summary. Keep the WHOLE conversation under 6000 tokens.
+
+Output format:
+- Every response must be a Python code block wrapped in <code>...</code>.
+- Do NOT write prose outside the code block.
+- To "write down" a plan or notes, use print() inside a code block.
 
 Follow these phases IN ORDER:
 
-Phase 1 — Plan.
-  Write 3 to 5 sub-questions that together cover the topic. Examples:
-  who created it, when, why, major version milestones, governance changes.
-  Write them as text before doing anything else.
+Phase 1 — Plan (1 step only).
+  Print 3 short sub-questions. Keep them under 10 words each.
 
-Phase 2 — Search.
-  For each sub-question, call get_search_results_as_string with a focused
-  query. Read the snippets carefully. Do NOT answer yet.
+Phase 2 — Search (max 3 searches total).
+  For each sub-question, call get_search_results_as_string with a
+  2-6 word query. Use num_results=3. Do NOT answer yet.
+  Wait 2 seconds between calls to avoid rate limits.
 
-Phase 3 — Read sources.
-  For the 2 most promising results per sub-question, call fetch_page on
-  their URL to read the full content. Prefer authoritative domains
-  (wikipedia.org, .gov, .edu, python.org, major news outlets). Skip
-  obviously low-quality results.
+Phase 3 — Read (max 2 fetches total).
+  Pick the 2 best URLs from all your search results (prefer wikipedia.org,
+  python.org, .edu, .gov). Call fetch_page on them with max_chars=2000.
 
-Phase 4 — Write the summary.
-  Combine what you learned into a coherent summary. Every factual claim
-  must have an inline source marker like [1], [2]. At the end, list every
-  URL you actually fetched, numbered to match the markers.
+Phase 4 — Summarize.
+  Write a 150-250 word summary. Every claim gets an inline marker [1] or [2].
+  End with a numbered list of the URLs you actually fetched.
 
-Phase 5 — Verify.
-  Re-read your summary. For each citation [N], confirm the claim is
-  supported by the fetched text for that source. Remove or fix any claim
-  you cannot support. If a source's text was truncated, only cite what
-  you actually read.
+Rules:
+- Only cite URLs returned by search AND fetched with fetch_page.
+- Do not invent URLs, dates, or facts.
+- Search queries must be 2-6 words, not sentences.
+- If a search fails, try a shorter query ONCE, then move on.
+- Do not exceed 6000 tokens. If close, stop and summarize with what you have.
 
-Hard rules:
-  - Only cite URLs that came from get_search_results_as_string AND were
-    fetched with fetch_page.
-  - Do not invent URLs, dates, or facts.
-  - If you could not find evidence for a sub-question, say so explicitly
-    instead of guessing.
-
-When done, call final_answer(...) with the full summary text.
+When done, call final_answer(...) with the summary text.
 """
 
 

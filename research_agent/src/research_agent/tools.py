@@ -1,16 +1,17 @@
-from smolagents import tool
-from ddgs import DDGS
+import time
+from urllib.parse import urlparse
+
 import httpx
 import trafilatura
-from urllib.parse import urlparse
-import time 
+from ddgs import DDGS
+from smolagents import tool
 
 
 def _domain(url: str) -> str:
     """Return the bare domain for a URL, e.g. 'en.wikipedia.org'."""
     try:
         return urlparse(url).netloc
-    except Exception:
+    except Exception:  # noqa: BLE001
         return ""
 
 
@@ -31,7 +32,7 @@ def get_search_results_as_string(query: str, num_results: int = 2) -> str:
     try:
         with DDGS() as ddgs:
             results = list(ddgs.text(query, max_results=num_results))
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         msg = str(e)
         if "No results" in msg or "rate" in msg.lower() or "429" in msg:
             return (
@@ -125,3 +126,12 @@ def fetch_page(url: str, max_chars: int = 2000) -> str:
     return f"SOURCE: {url}\n\n{extracted}"
 
 
+@tool
+def submit_final_answer(summary: str) -> str:
+    """
+    Submit your final cited summary when you are completely finished.
+    
+    Args:
+        summary: The full text of your summary, including the inline [1]/[2] citations and the URL list at the end.
+    """
+    return summary
